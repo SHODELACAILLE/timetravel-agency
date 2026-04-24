@@ -766,51 +766,70 @@
 </footer>
 
 <script>
-// CHATBOT
-const responses = {
-  default: "Excellente question ! Permettez-moi de vous aider à explorer nos destinations temporelles. Vous pouvez me demander des détails sur Paris 1889, le Crétacé ou Florence 1504.",
-  paris: "Paris 1889, c'est la Belle Époque dans toute sa splendeur ! Vous assisterez à l'inauguration de la Tour Eiffel, vous promènerez sur les boulevards haussmanniens et dînerez dans les grands restaurants de l'époque. Le voyage commence à 12 400 € par personne pour 5 jours. Un voyage d'une élégance rare.",
-  cretace: "Le voyage Crétacé est notre expérience la plus audacieuse ! Vous observerez T-Rex, Triceratops et Pteranodon dans leur milieu naturel, depuis une capsule panoramique blindée accompagnée d'un paléontologue expert. Comptez 28 900 € pour 3 jours. Une aventure que 0,001% de l'humanité a vécue.",
-  florence: "Florence 1504, c'est la Renaissance à son apogée. Michel-Ange vient de terminer le David, Botticelli est encore à l'œuvre, les Médicis règnent sur la culture européenne. Vous vivrez dans ce monde de beauté absolue pendant 7 jours, dès 18 200 €.",
-  prix: "Nos tarifs reflètent l'exclusivité de l'expérience : Paris 1889 dès 12 400 €, Florence 1504 dès 18 200 €, et le Crétacé dès 28 900 €. Tous nos voyages incluent guide dédié, costume d'époque et hébergement temporel premium.",
-  choisir: "Tout dépend de vos passions ! Si vous aimez l'art et la culture, Florence 1504 vous éblouira. Pour l'élégance urbaine et l'histoire moderne, Paris 1889 est parfait. Et si l'aventure pure vous attire, le Crétacé est une expérience sans équivalent. Que préférez-vous ?",
-  bonjour: "Bienvenue chez TimeTravel Agency ! Je suis Chronos, votre conseiller en voyages temporels de luxe. Nous proposons 3 destinations : Paris 1889 (Belle Époque), le Crétacé (−70 millions d'années) et Florence 1504 (Renaissance). Quelle époque vous fait rêver ?",
-  destinations: "Nous proposons 3 destinations exclusives : 🗼 Paris 1889 — Belle Époque, vivez l'Exposition Universelle · 🦕 Crétacé −70M ans, observez les dinosaures · 🖼️ Florence 1504 — Renaissance, côtoyez Michel-Ange. Laquelle vous attire le plus ?"
-};
+// CHATBOT — Agent IA Mistral
+const MISTRAL_KEY = 'u3VcaM11DqoFU2QeBLXrLosPMuXdCyzs';
+const SYSTEM_PROMPT = `Tu es Chronos, l'assistant virtuel de TimeTravel Agency, une agence de voyage temporel de luxe.
+Ton rôle : conseiller les clients sur les meilleures destinations temporelles.
 
-function getBotResponse(msg) {
-  const m = msg.toLowerCase();
-  if (m.includes('bonjour') || m.includes('salut') || m.includes('hello')) return responses.bonjour;
-  if (m.includes('destination') || m.includes('disponible') || m.includes('offre')) return responses.destinations;
-  if (m.includes('paris') || m.includes('eiffel') || m.includes('1889') || m.includes('belle époque')) return responses.paris;
-  if (m.includes('crétacé') || m.includes('dinosaure') || m.includes('préhistoire') || m.includes('t-rex')) return responses.cretace;
-  if (m.includes('florence') || m.includes('renaissance') || m.includes('michel') || m.includes('botticelli') || m.includes('1504')) return responses.florence;
-  if (m.includes('prix') || m.includes('coût') || m.includes('tarif') || m.includes('combien') || m.includes('€')) return responses.prix;
-  if (m.includes('choisir') || m.includes('différence') || m.includes('entre') || m.includes('conseille')) return responses.choisir;
-  return responses.default;
+Ton ton : professionnel mais chaleureux, passionné d'histoire, toujours enthousiaste sans être trop familier, expertise en voyage temporel (fictif mais crédible). Réponds toujours en français. Sois concis (3-4 phrases max).
+
+Tu connais parfaitement ces 3 destinations :
+- Paris 1889 (Belle Époque, Tour Eiffel en construction, Exposition Universelle) — dès 12 400 € / 5 jours
+- Crétacé −70 millions d'années (T-Rex, Triceratops, forêts de fougères, capsule panoramique blindée) — dès 28 900 € / 3 jours
+- Florence 1504 (Renaissance, Michel-Ange, Botticelli, Médicis, Dôme de Brunelleschi) — dès 18 200 € / 7 jours
+
+Chaque voyage inclut : guide-chrononaute dédié, costume d'époque sur-mesure, hébergement temporel premium.`;
+
+const chatHistory = [];
+
+async function callMistral(userMsg) {
+  chatHistory.push({ role: 'user', content: userMsg });
+  try {
+    const res = await fetch('https://api.mistral.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + MISTRAL_KEY },
+      body: JSON.stringify({
+        model: 'mistral-small-latest',
+        messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...chatHistory],
+        max_tokens: 200,
+        temperature: 0.7
+      })
+    });
+    const data = await res.json();
+    const reply = data.choices?.[0]?.message?.content || "Je suis désolé, je rencontre une difficulté technique. Veuillez réessayer.";
+    chatHistory.push({ role: 'assistant', content: reply });
+    return reply;
+  } catch(e) {
+    return "Une erreur de connexion est survenue. Veuillez réessayer dans un instant.";
+  }
 }
 
-function sendMessage() {
+async function sendMessage() {
   const input = document.getElementById('chatInput');
   const msg = input.value.trim();
   if (!msg) return;
   addMessage(msg, 'user');
   input.value = '';
+  input.disabled = true;
+  document.querySelector('.chat-send').disabled = true;
   showTyping();
-  setTimeout(() => {
-    removeTyping();
-    addMessage(getBotResponse(msg), 'bot');
-  }, 900 + Math.random() * 600);
+  const reply = await callMistral(msg);
+  removeTyping();
+  addMessage(reply, 'bot');
+  input.disabled = false;
+  document.querySelector('.chat-send').disabled = false;
+  input.focus();
 }
 
-function askSuggestion(btn) {
+async function askSuggestion(btn) {
   const msg = btn.textContent;
   addMessage(msg, 'user');
+  document.getElementById('chatInput').disabled = true;
   showTyping();
-  setTimeout(() => {
-    removeTyping();
-    addMessage(getBotResponse(msg), 'bot');
-  }, 900);
+  const reply = await callMistral(msg);
+  removeTyping();
+  addMessage(reply, 'bot');
+  document.getElementById('chatInput').disabled = false;
 }
 
 function addMessage(text, type) {
