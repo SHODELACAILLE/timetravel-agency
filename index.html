@@ -426,12 +426,41 @@
   .footer-copy { font-size: 11px; color: var(--text-dim); opacity: 0.5; }
 
   /* ANIMATIONS */
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(24px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  .fade-in { opacity: 0; transform: translateY(20px); transition: opacity 0.7s ease, transform 0.7s ease; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(28px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes scaleIn { from { opacity: 0; transform: scale(0.94) translateY(16px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+  .fade-in { opacity: 0; transform: translateY(24px); transition: opacity 0.75s cubic-bezier(0.4,0,0.2,1), transform 0.75s cubic-bezier(0.4,0,0.2,1); }
   .fade-in.visible { opacity: 1; transform: translateY(0); }
+  .dest-card { transition: transform 0.45s cubic-bezier(0.4,0,0.2,1), box-shadow 0.45s ease; }
+  .dest-card:hover { transform: translateY(-6px) scale(1.01) !important; box-shadow: 0 24px 48px rgba(0,0,0,0.5), 0 0 0 1px rgba(201,168,76,0.2); }
+  .dest-card .dest-bg { transition: transform 0.7s cubic-bezier(0.4,0,0.2,1); }
+  .dest-card:hover .dest-bg { transform: scale(1.08); }
+  .btn-primary { position: relative; overflow: hidden; transition: opacity 0.2s, transform 0.2s, box-shadow 0.2s !important; }
+  .btn-primary::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent); transform: translateX(-100%); transition: transform 0.5s ease; }
+  .btn-primary:hover::after { transform: translateX(100%); }
+  .btn-primary:hover { transform: translateY(-2px) !important; box-shadow: 0 8px 24px rgba(201,168,76,0.35); }
+  .btn-primary:active { transform: scale(0.97) !important; }
+  .btn-ghost { transition: border-color 0.3s, color 0.3s, transform 0.2s, box-shadow 0.3s !important; }
+  .btn-ghost:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(201,168,76,0.15); }
+  .btn-ghost:active { transform: scale(0.97); }
+  .nav-links a { position: relative; }
+  .nav-links a::after { content: ''; position: absolute; bottom: -3px; left: 0; width: 0; height: 1px; background: var(--gold); transition: width 0.3s ease; }
+  .nav-links a:hover::after { width: 100%; }
+  .stat-card { transition: transform 0.3s ease, border-color 0.3s ease, background 0.3s ease; cursor: default; }
+  .stat-card:hover { transform: translateY(-4px); border-color: rgba(201,168,76,0.5); background: rgba(201,168,76,0.07); }
+  .stat-num { transition: color 0.3s; }
+  .stat-card:hover .stat-num { color: var(--gold-light); }
+  .chat-window { transition: box-shadow 0.3s ease; }
+  .chat-window:hover { box-shadow: 0 16px 40px rgba(0,0,0,0.4), 0 0 0 1px rgba(201,168,76,0.1); }
+  .msg { animation: scaleIn 0.3s cubic-bezier(0.34,1.56,0.64,1) forwards; }
+  .form-input, .form-select { transition: border-color 0.25s, background 0.25s, transform 0.2s; }
+  .form-input:focus, .form-select:focus { transform: translateY(-1px); border-color: rgba(201,168,76,0.5) !important; background: rgba(201,168,76,0.04) !important; }
+  .form-submit { transition: opacity 0.2s, transform 0.2s, box-shadow 0.2s; position: relative; overflow: hidden; }
+  .form-submit::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent); transform: translateX(-100%); transition: transform 0.5s; }
+  .form-submit:hover::after { transform: translateX(100%); }
+  .form-submit:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(201,168,76,0.3); }
+  .form-submit:active { transform: scale(0.98); }
+  .suggestion-btn { transition: border-color 0.2s, color 0.2s, transform 0.2s, padding-left 0.2s; }
+  .suggestion-btn:hover { transform: translateX(4px); padding-left: 18px; }
 
   /* RESPONSIVE */
   @media (max-width: 768px) {
@@ -890,11 +919,59 @@ function submitForm() {
   document.getElementById('confirm-name').textContent = prenom + (nom ? ' ' + nom : '');
 }
 
-// SCROLL ANIMATIONS
+// SCROLL ANIMATIONS avec cascade
 const observer = new IntersectionObserver(entries => {
   entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
-}, { threshold: 0.1 });
+}, { threshold: 0.08 });
 document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+
+// Cards destinations en cascade
+const cardObserver = new IntersectionObserver(entries => {
+  entries.forEach((e, i) => {
+    if (e.isIntersecting) {
+      const cards = document.querySelectorAll('.dest-card');
+      cards.forEach((c, idx) => {
+        setTimeout(() => {
+          c.style.opacity = '1';
+          c.style.transform = 'translateY(0)';
+        }, idx * 140);
+      });
+      cardObserver.disconnect();
+    }
+  });
+}, { threshold: 0.1 });
+const destGrid = document.querySelector('.dest-grid');
+if (destGrid) {
+  document.querySelectorAll('.dest-card').forEach(c => {
+    c.style.opacity = '0';
+    c.style.transform = 'translateY(32px)';
+    c.style.transition = 'opacity 0.65s cubic-bezier(0.4,0,0.2,1), transform 0.65s cubic-bezier(0.4,0,0.2,1), box-shadow 0.45s ease';
+  });
+  cardObserver.observe(destGrid);
+}
+
+// Parallax hero au scroll
+window.addEventListener('scroll', () => {
+  const hero = document.getElementById('hero');
+  const stars = document.querySelector('.hero-stars');
+  if (hero && stars) {
+    const y = window.scrollY;
+    stars.style.transform = 'translateY(' + (y * 0.3) + 'px)';
+    hero.querySelector('.hero-bg').style.transform = 'translateY(' + (y * 0.15) + 'px)';
+  }
+}, { passive: true });
+
+// Nav scroll effect
+window.addEventListener('scroll', () => {
+  const nav = document.querySelector('nav');
+  if (window.scrollY > 60) {
+    nav.style.background = 'rgba(10,10,15,0.97)';
+    nav.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
+  } else {
+    nav.style.background = 'linear-gradient(to bottom, rgba(10,10,15,0.95), transparent)';
+    nav.style.borderBottom = 'none';
+  }
+}, { passive: true });
 </script>
 </body>
 </html>
